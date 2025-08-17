@@ -1,3 +1,11 @@
+---
+name: 일반 이슈
+about: 버그 리포트, 기능 요청, 질문 등
+title: '[타입] 이슈 제목'
+labels: ''
+assignees: ''
+---
+
 ## 🔗 관련 이슈
 
 Closes #이슈번호
