@@ -1,0 +1,9 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+.env*
+*.config.js
+*.config.mjs
+.husky/
