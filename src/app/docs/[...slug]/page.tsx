@@ -6,6 +6,9 @@ import rehypeHighlight from 'rehype-highlight';
 import { getFileContent, getDocsFiles } from '@/lib/github';
 import 'highlight.js/styles/github.css'; // 코드 하이라이팅 스타일
 
+// ISR 캐싱 설정 - 1시간마다 재생성
+export const revalidate = 3600;
+
 interface PageProps {
   params: Promise<{
     slug: string[];
