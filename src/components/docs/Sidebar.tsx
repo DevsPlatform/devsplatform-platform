@@ -1,94 +1,85 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
+import { getDocsFiles } from '@/lib/github';
 
-const categories = [
-  {
-    name: '시작하기',
-    icon: '🚀',
-    items: [
-      { name: '소개', href: '/docs/intro' },
-      { name: '설치 가이드', href: '/docs/installation' },
-    ],
-  },
-  {
-    name: 'React',
-    icon: '⚛️',
-    items: [
-      { name: 'React 기초', href: '/docs/react/basics' },
-      { name: 'State & Props', href: '/docs/react/state-props' },
-      { name: 'Hooks', href: '/docs/react/hooks' },
-      { name: 'Context API', href: '/docs/react/context' },
-    ],
-  },
-  {
-    name: 'Next.js',
-    icon: '🔷',
-    items: [
-      { name: 'Next.js 소개', href: '/docs/nextjs/intro' },
-      { name: 'App Router', href: '/docs/nextjs/app-router' },
-      { name: '라우팅', href: '/docs/nextjs/routing' },
-      { name: '서버 컴포넌트', href: '/docs/nextjs/server-components' },
-    ],
-  },
-  {
-    name: 'JavaScript',
-    icon: '📜',
-    items: [
-      { name: 'JS 기초', href: '/docs/javascript/basics' },
-      { name: '비동기 프로그래밍', href: '/docs/javascript/async' },
-      { name: 'ES6+ 문법', href: '/docs/javascript/es6' },
-    ],
-  },
-];
+// 폴더명에 따른 아이콘 매핑
+const folderIcons: { [key: string]: string } = {
+  시작하기: '🚀',
+  React: '⚛️',
+  'Next.js': '🔷',
+  JavaScript: '📜',
+  TypeScript: '💙',
+  'Node.js': '🟢',
+  Git: '🔧',
+  개발환경: '⚙️',
+  기타: '📝',
+};
 
-export default function Sidebar() {
-  const [openCategories, setOpenCategories] = useState<string[]>(['React']);
+// 카테고리 타입 정의
+interface CategoryItem {
+  name: string;
+  href: string;
+}
 
-  const toggleCategory = (categoryName: string) => {
-    setOpenCategories(prev =>
-      prev.includes(categoryName)
-        ? prev.filter(name => name !== categoryName)
-        : [...prev, categoryName]
-    );
-  };
+interface Category {
+  name: string;
+  icon: string;
+  items: CategoryItem[];
+}
 
-  return (
-    <aside className='bg-white border-r border-gray-200 h-screen overflow-y-auto sticky top-0'>
-      <div className='p-6'>
-        <h2 className='text-xl font-bold text-gray-900 mb-6'>Docs</h2>
+// ISR 캐싱 - 1시간마다 재생성
+export const revalidate = 3600;
 
-        <nav className='space-y-2'>
-          {categories.map(category => (
-            <div key={category.name}>
-              <button
-                onClick={() => toggleCategory(category.name)}
-                className='flex items-center justify-between w-full px-3 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors'
-              >
-                <div className='flex items-center'>
+export default async function Sidebar() {
+  try {
+    // GitHub에서 카테고리 데이터 가져오기 (서버에서 실행)
+    const rootFiles = await getDocsFiles();
+    const folders = rootFiles.filter(file => file.type === 'dir');
+
+    const categories: Category[] = [];
+
+    for (const folder of folders) {
+      try {
+        const folderFiles = await getDocsFiles(folder.path);
+        const mdFiles = folderFiles.filter(
+          file => file.type === 'file' && file.name.endsWith('.md')
+        );
+
+        const items: CategoryItem[] = mdFiles.map(file => {
+          const fileName = file.name.replace('.md', '');
+          return {
+            name: fileName.replace(/-/g, ' '),
+            href: `/docs/${encodeURIComponent(folder.name)}/${encodeURIComponent(fileName)}`,
+          };
+        });
+
+        if (items.length > 0) {
+          categories.push({
+            name: folder.name,
+            icon: folderIcons[folder.name] || '📁',
+            items: items,
+          });
+        }
+      } catch (err) {
+        console.error(`폴더 ${folder.name} 처리 중 오류:`, err);
+      }
+    }
+
+    return (
+      <aside className='bg-white border-r border-gray-200 h-screen overflow-y-auto sticky top-0'>
+        <div className='p-6'>
+          <h2 className='text-xl font-bold text-gray-900 mb-6'>Docs</h2>
+
+          <nav className='space-y-2'>
+            {categories.map(category => (
+              <div key={category.name}>
+                {/* 카테고리 헤더 - 항상 열려있게 */}
+                <div className='flex items-center px-3 py-2 text-gray-700'>
                   <span className='mr-3 text-lg'>{category.icon}</span>
                   <span className='font-medium'>{category.name}</span>
                 </div>
-                <svg
-                  className={`w-4 h-4 transition-transform duration-200 ${
-                    openCategories.includes(category.name) ? 'rotate-90' : ''
-                  }`}
-                  fill='none'
-                  stroke='currentColor'
-                  viewBox='0 0 24 24'
-                >
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M9 5l7 7-7 7'
-                  />
-                </svg>
-              </button>
 
-              {openCategories.includes(category.name) && (
-                <div className='ml-8 mt-1 space-y-1'>
+                {/* 카테고리 아이템들 */}
+                <div className='ml-8 space-y-1'>
                   {category.items.map(item => (
                     <Link
                       key={item.href}
@@ -99,11 +90,31 @@ export default function Sidebar() {
                     </Link>
                   ))}
                 </div>
-              )}
-            </div>
-          ))}
-        </nav>
-      </div>
-    </aside>
-  );
+              </div>
+            ))}
+          </nav>
+
+          {/* 캐시 정보 */}
+          <div className='mt-8 pt-4 border-t border-gray-200'>
+            <p className='text-xs text-gray-400'>
+              📦 캐시된 목록 (1시간마다 업데이트)
+            </p>
+          </div>
+        </div>
+      </aside>
+    );
+  } catch (error) {
+    console.error('카테고리 로딩 오류:', error);
+
+    return (
+      <aside className='bg-white border-r border-gray-200 h-screen overflow-y-auto sticky top-0'>
+        <div className='p-6'>
+          <h2 className='text-xl font-bold text-gray-900 mb-6'>Docs</h2>
+          <div className='text-red-600 text-sm'>
+            <p>문서 목록을 불러오는데 실패했습니다.</p>
+          </div>
+        </div>
+      </aside>
+    );
+  }
 }
