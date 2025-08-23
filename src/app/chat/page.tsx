@@ -1,5 +1,6 @@
 import ChatHeader from '../../components/chat/ChatHeader';
 import MessageList from '../../components/chat/MessageList';
+import MessageInput from '../../components/chat/MessageInput';
 
 export default function ChatPage() {
   return (
@@ -17,16 +18,7 @@ export default function ChatPage() {
 
               {/* 메시지 입력 영역 */}
               <div className='border-t border-gray-200 p-4'>
-                <div className='flex space-x-3'>
-                  <input
-                    type='text'
-                    placeholder='메시지를 입력하세요...'
-                    className='flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none'
-                  />
-                  <button className='px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium'>
-                    전송
-                  </button>
-                </div>
+                <MessageInput />
               </div>
             </div>
 
