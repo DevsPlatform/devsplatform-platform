@@ -3,21 +3,32 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import { getFileContent, getDocsFiles } from '@/lib/github';
-import 'highlight.js/styles/github.css'; // 코드 하이라이팅 스타일
+import Image from 'next/image';
+import { getFileContent, getDocsTree } from '@/lib/github';
+import 'highlight.js/styles/github.css';
+
+// GitHub API 타입 정의 (author 필드를 사용하도록 수정)
+interface Commit {
+  author: {
+    login: string;
+    avatar_url: string;
+    html_url: string;
+  };
+}
+
+interface PageProps {
+  params: {
+    slug: string[];
+  };
+}
 
 // ISR 캐싱 설정 - 1시간마다 재생성
 export const revalidate = 3600;
 
-interface PageProps {
-  params: Promise<{
-    slug: string[];
-  }>;
-}
-
 // 메타데이터 생성
 export async function generateMetadata({ params }: PageProps) {
-  const { slug } = await params; // await 추가!
+  // --- await params 처리 ---
+  const { slug } = await params;
   const title = slug[slug.length - 1] || 'Docs';
 
   return {
@@ -29,32 +40,10 @@ export async function generateMetadata({ params }: PageProps) {
 // 정적 경로 생성 (빌드 시 미리 생성할 페이지들)
 export async function generateStaticParams() {
   try {
-    // 모든 폴더와 파일 경로 수집
-    const paths: { slug: string[] }[] = [];
-
-    // 루트 폴더들 가져오기
-    const rootFiles = await getDocsFiles();
-    const folders = rootFiles.filter(file => file.type === 'dir');
-
-    for (const folder of folders) {
-      try {
-        const folderFiles = await getDocsFiles(folder.path);
-        const mdFiles = folderFiles.filter(
-          file => file.type === 'file' && file.name.endsWith('.md')
-        );
-
-        for (const file of mdFiles) {
-          const fileName = file.name.replace('.md', '');
-          paths.push({
-            slug: [folder.name, fileName],
-          });
-        }
-      } catch (err) {
-        console.error(`폴더 ${folder.name} 처리 중 오류:`, err);
-      }
-    }
-
-    return paths;
+    const docsTree = await getDocsTree();
+    return docsTree.map(file => ({
+      slug: file.path.replace(/\.md$/, '').split('/'),
+    }));
   } catch (error) {
     console.error('정적 경로 생성 오류:', error);
     return [];
@@ -62,27 +51,29 @@ export async function generateStaticParams() {
 }
 
 export default async function DocsDetailPage({ params }: PageProps) {
-  const { slug } = await params; // await 추가!
-
-  // URL에서 파일 경로 구성 (한글 경로 디코딩)
+  // --- await params 처리 ---
+  const { slug } = await params;
   const folderName = decodeURIComponent(slug[0]);
   const fileName = decodeURIComponent(slug[1]);
   const filePath = `${folderName}/${fileName}.md`;
 
-  console.log('요청된 파일 경로:', filePath); // 디버깅용
-
   try {
-    // GitHub에서 마크다운 파일 내용 가져오기
-    const content = await getFileContent(filePath);
+    const [content, commitData] = await Promise.all([
+      getFileContent(filePath),
+      fetch(
+        `https://api.github.com/repos/DevsPlatform/devsplatform-docs/commits?path=${filePath}&per_page=1`,
+        {
+          next: { revalidate: 3600 },
+        }
+      ).then(res => res.json()),
+    ]);
 
-    // 파일명을 사람이 읽기 좋게 변환
+    const latestCommit: Commit = commitData?.[0];
     const displayTitle = fileName.replace(/-/g, ' ');
 
     return (
       <div className='flex min-h-screen bg-gray-50'>
-        {/* 메인 콘텐츠 */}
         <main className='flex-1 max-w-4xl mx-auto px-6 py-8'>
-          {/* 브레드크럼 */}
           <nav className='mb-8'>
             <div className='flex items-center text-sm text-gray-600'>
               <Link href='/docs' className='hover:text-gray-900'>
@@ -94,22 +85,40 @@ export default async function DocsDetailPage({ params }: PageProps) {
               <span className='text-gray-900 font-medium'>{displayTitle}</span>
             </div>
           </nav>
-
-          {/* 문서 헤더 */}
-          <header className='mb-8 pb-6 border-b border-gray-200'>
-            <h1 className='text-4xl font-bold text-gray-900 mb-2'>
-              {displayTitle}
-            </h1>
+          <header className='mb-4 pb-6 border-b border-gray-200'>
+            <div className='flex justify-between items-center mb-2'>
+              <h1 className='text-4xl font-bold text-gray-900'>
+                {displayTitle}
+              </h1>
+              {latestCommit && (
+                <div className='flex items-center space-x-2 text-sm text-gray-500'>
+                  <span>기여자:</span>
+                  <Link
+                    href={latestCommit.author.html_url}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='flex items-center space-x-2 hover:underline'
+                  >
+                    <Image
+                      src={latestCommit.author.avatar_url}
+                      alt={latestCommit.author.login}
+                      width={24}
+                      height={24}
+                      className='rounded-full'
+                    />
+                    <span>{latestCommit.author.login}</span>
+                  </Link>
+                </div>
+              )}
+            </div>
             <p className='text-gray-600'>{folderName} 카테고리의 문서</p>
           </header>
 
-          {/* 마크다운 콘텐츠 */}
           <article className='prose prose-lg max-w-none'>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeHighlight]}
               components={{
-                // 제목 스타일링
                 h1: ({ children }) => (
                   <h1 className='text-3xl font-bold text-gray-900 mt-8 mb-4 first:mt-0'>
                     {children}
@@ -125,15 +134,11 @@ export default async function DocsDetailPage({ params }: PageProps) {
                     {children}
                   </h3>
                 ),
-
-                // 단락 스타일링
                 p: ({ children }) => (
                   <p className='text-gray-700 leading-relaxed mb-4'>
                     {children}
                   </p>
                 ),
-
-                // 목록 스타일링
                 ul: ({ children }) => (
                   <ul className='list-disc list-inside mb-4 space-y-1 text-gray-700'>
                     {children}
@@ -144,8 +149,6 @@ export default async function DocsDetailPage({ params }: PageProps) {
                     {children}
                   </ol>
                 ),
-
-                // 링크 스타일링
                 a: ({ href, children }) => (
                   <a
                     href={href}
@@ -160,8 +163,6 @@ export default async function DocsDetailPage({ params }: PageProps) {
                     {children}
                   </a>
                 ),
-
-                // 코드 블록 스타일링
                 code: ({ className, children }) => {
                   const isInline = !className;
                   if (isInline) {
@@ -173,8 +174,6 @@ export default async function DocsDetailPage({ params }: PageProps) {
                   }
                   return <code className={className}>{children}</code>;
                 },
-
-                // 인용구 스타일링
                 blockquote: ({ children }) => (
                   <blockquote className='border-l-4 border-blue-500 pl-4 my-4 italic text-gray-600 bg-blue-50 py-2'>
                     {children}
@@ -185,8 +184,6 @@ export default async function DocsDetailPage({ params }: PageProps) {
               {content}
             </ReactMarkdown>
           </article>
-
-          {/* 하단 네비게이션 */}
           <footer className='mt-12 pt-8 border-t border-gray-200'>
             <div className='flex justify-between items-center'>
               <div className='text-sm text-gray-500'>
@@ -200,7 +197,6 @@ export default async function DocsDetailPage({ params }: PageProps) {
                   GitHub에서 편집하기
                 </a>
               </div>
-
               <div className='text-sm text-gray-500'>
                 마지막 업데이트: 방금 전
               </div>
@@ -211,6 +207,6 @@ export default async function DocsDetailPage({ params }: PageProps) {
     );
   } catch (error) {
     console.error('문서 로딩 오류:', error);
-    notFound(); // 404 페이지로 이동
+    notFound();
   }
 }
