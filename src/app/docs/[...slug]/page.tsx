@@ -17,19 +17,18 @@ interface Commit {
 }
 
 interface PageProps {
-  params: {
+  params: Promise<{
     slug: string[];
-  };
+  }>;
 }
 
 // ISR 캐싱 설정 - 1시간마다 재생성
 export const revalidate = 3600;
 
-// 메타데이터 생성
+// 메타데이터 생성 - params를 await로 처리
 export async function generateMetadata({ params }: PageProps) {
-  // --- await params 처리 ---
-  const { slug } = await params;
-  const title = slug[slug.length - 1] || 'Docs';
+  const resolvedParams = await params; // 이 줄 추가!
+  const title = resolvedParams.slug[resolvedParams.slug.length - 1] || 'Docs';
 
   return {
     title: `${title} | DevsPlatform Docs`,
@@ -51,10 +50,9 @@ export async function generateStaticParams() {
 }
 
 export default async function DocsDetailPage({ params }: PageProps) {
-  // --- await params 처리 ---
-  const { slug } = await params;
-  const folderName = decodeURIComponent(slug[0]);
-  const fileName = decodeURIComponent(slug[1]);
+  const resolvedParams = await params; // 이 줄 추가!
+  const folderName = decodeURIComponent(resolvedParams.slug[0]);
+  const fileName = decodeURIComponent(resolvedParams.slug[1]);
   const filePath = `${folderName}/${fileName}.md`;
 
   try {
@@ -69,6 +67,7 @@ export default async function DocsDetailPage({ params }: PageProps) {
     ]);
 
     const latestCommit: Commit = commitData?.[0];
+
     const displayTitle = fileName.replace(/-/g, ' ');
 
     return (
@@ -113,7 +112,6 @@ export default async function DocsDetailPage({ params }: PageProps) {
             </div>
             <p className='text-gray-600'>{folderName} 카테고리의 문서</p>
           </header>
-
           <article className='prose prose-lg max-w-none'>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
