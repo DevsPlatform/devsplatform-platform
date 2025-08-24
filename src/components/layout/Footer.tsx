@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function Footer() {
   return (
     <footer className='bg-gray-50 border-t border-gray-200'>
@@ -18,24 +20,24 @@ export default function Footer() {
             <h4 className='text-md font-medium text-gray-900 mb-4'>서비스</h4>
             <ul className='space-y-2 text-sm text-gray-600'>
               <li>
-                <a href='/docs' className='hover:text-gray-900'>
+                <Link href='/docs' className='hover:text-gray-900'>
                   Docs
-                </a>
+                </Link>
               </li>
               <li>
-                <a href='/community' className='hover:text-gray-900'>
+                <Link href='/community' className='hover:text-gray-900'>
                   Community
-                </a>
+                </Link>
               </li>
               <li>
-                <a href='/chat' className='hover:text-gray-900'>
+                <Link href='/chat' className='hover:text-gray-900'>
                   Chat
-                </a>
+                </Link>
               </li>
               <li>
-                <a href='/ai' className='hover:text-gray-900'>
+                <Link href='/ai' className='hover:text-gray-900'>
                   AI Assistant
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
