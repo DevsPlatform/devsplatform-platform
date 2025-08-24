@@ -1,9 +1,7 @@
+// src/app/docs/layout.tsx
 import React from 'react';
-import Sidebar from '@/components/docs/Sidebar';
+import DocsLayoutClientWrapper from '@/components/docs/DocsLayoutClientWrapper';
 import { getDocsFiles } from '@/lib/github';
-import { Category, CategoryItem } from '@/types/docs'; // 타입을 한 곳에서 임포트
-
-// Remix Icon에서 사용할 올바른 아이콘 이름을 임포트합니다.
 import {
   RiPlayCircleFill,
   RiReactjsFill,
@@ -17,6 +15,7 @@ import {
   RiTailwindCssFill,
   RiNodejsFill,
 } from '@remixicon/react';
+import { Category, CategoryItem } from '@/types/docs';
 
 // 폴더명에 따른 아이콘 매핑
 const folderIcons: { [key: string]: React.ReactNode } = {
@@ -24,7 +23,7 @@ const folderIcons: { [key: string]: React.ReactNode } = {
   React: <RiReactjsFill />,
   'Next.js': <RiNextjsFill />,
   JavaScript: <RiJavascriptFill />,
-  TypeScript: <RiNodejsFill />, // Remixicon에 TypeScript 전용 아이콘이 없어 Node.js로 대체
+  TypeScript: <RiNodejsFill />,
   Html: <RiHtml5Fill />,
   Css: <RiCss3Fill />,
   Tailwind: <RiTailwindCssFill />,
@@ -74,38 +73,15 @@ export default async function DocsLayout({
     );
 
     return (
-      <div className='grid grid-cols-1 lg:grid-cols-[280px_1fr] min-h-screen'>
-        <div className='hidden lg:block'>
-          <Sidebar categories={categories} />
-        </div>
-
-        <main className='overflow-auto'>
-          <div className='lg:hidden p-4 border-b border-gray-200 bg-white sticky top-0 z-10'>
-            <button className='text-gray-600 hover:text-gray-900'>
-              <svg
-                className='w-6 h-6'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M4 6h16M4 12h16M4 18h16'
-                />
-              </svg>
-            </button>
-          </div>
-          {children}
-        </main>
-      </div>
+      <DocsLayoutClientWrapper categories={categories}>
+        {children}
+      </DocsLayoutClientWrapper>
     );
   } catch (error) {
     console.error('카테고리 로딩 오류:', error);
 
     return (
-      <div className='grid grid-cols-1 lg:grid-cols-[280px_1fr] min-h-screen'>
+      <div className='grid grid-cols-1 lg:grid-cols-[280px_1fr]'>
         <aside className='bg-white border-r border-gray-200 h-screen overflow-y-auto sticky top-0'>
           <div className='p-6'>
             <h2 className='text-xl font-bold text-gray-900 mb-6'>Docs</h2>
@@ -114,7 +90,7 @@ export default async function DocsLayout({
             </div>
           </div>
         </aside>
-        <main className='overflow-auto'>{children}</main>
+        <main className='overflow-auto flex-1'>{children}</main>
       </div>
     );
   }

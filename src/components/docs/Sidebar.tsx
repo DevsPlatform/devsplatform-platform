@@ -25,7 +25,7 @@ export default function Sidebar({ categories }: SidebarProps) {
   };
 
   return (
-    <aside className='bg-white border-r border-gray-200 h-screen overflow-y-auto sticky top-0'>
+    <aside className='bg-white border-r border-gray-200 overflow-y-auto sticky top-0'>
       <div className='p-6'>
         <h2 className='text-xl font-bold text-gray-900 mb-6'>Docs</h2>
 
