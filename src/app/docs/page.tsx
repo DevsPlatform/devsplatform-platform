@@ -26,7 +26,7 @@ export default async function DocsPage() {
     }));
 
   return (
-    <div className='bg-white'>
+    <div>
       {' '}
       {/* min-h-screen 제거 */}
       <div className='max-w-4xl mx-auto px-4 py-16'>
@@ -45,7 +45,6 @@ export default async function DocsPage() {
           <SearchBar allDocs={allDocs} />
         </div>
 
-        {/* 기여 가이드 섹션 */}
         <ContributionGuide />
       </div>
     </div>
