@@ -31,7 +31,7 @@ export default function DocsLayoutClientWrapper({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
-    <div className='flex min-h-screen'>
+    <div className='flex'>
       {/* 사이드바 - 열림/닫힘 상태에 따라 너비 조절 */}
       <div
         className={`transition-all duration-300 ${isSidebarOpen ? 'w-[280px]' : 'w-0'}`}
@@ -40,7 +40,7 @@ export default function DocsLayoutClientWrapper({
       </div>
 
       {/* 메인 콘텐츠 */}
-      <main className='flex-1 overflow-auto p-4 transition-all duration-300'>
+      <main className='flex-1 overflow-visible p-4 transition-all duration-300'>
         {/* 토글 버튼 */}
         <div className='sticky top-4 left-4 z-50'>
           <button

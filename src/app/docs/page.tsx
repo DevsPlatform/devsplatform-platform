@@ -29,7 +29,7 @@ export default async function DocsPage() {
     <div>
       {' '}
       {/* min-h-screen 제거 */}
-      <div className='max-w-4xl mx-auto px-4 py-16'>
+      <div className='max-w-4xl mx-auto px-4 py-8'>
         {/* 헤더 섹션 */}
         <div className='text-center mb-12'>
           <h1 className='text-5xl font-bold text-gray-900 mb-6'>
