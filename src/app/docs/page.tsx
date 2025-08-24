@@ -1,6 +1,31 @@
+// src/app/docs/page.tsx
 import SearchBar from '@/components/docs/SearchBar';
+import { getDocsTree } from '@/lib/github'; // getDocsTree 함수를 가져옵니다.
 
-export default function DocsPage() {
+// DocsFile 타입 정의
+interface DocsFile {
+  name: string;
+  path: string;
+  type: 'file' | 'dir';
+  download_url?: string;
+  content?: string;
+}
+
+export default async function DocsPage() {
+  // 1. GitHub API를 호출하여 모든 파일 목록을 가져옵니다.
+  const docsTree: DocsFile[] = await getDocsTree();
+
+  // 2. 검색에 사용할 데이터 형식으로 변환합니다.
+  const allDocs = docsTree
+    .filter(file => file.type === 'file' && file.name.endsWith('.md')) // 마크다운 파일만 필터링
+    .map(file => ({
+      title: file.name.replace(/\.md$/, ''), // 파일명에서 확장자 제거
+      description: `이 문서는 ${file.name.replace(/\.md$/, '')}에 대한 내용입니다.`,
+      icon: '📄', // 아이콘은 기본값으로 설정
+      category: file.path.split('/')[0], // 경로의 첫 번째 폴더를 카테고리로 사용
+      link: `/docs/${file.path.replace(/\.md$/, '')}`, // URL 경로 생성
+    }));
+
   return (
     <div className='bg-white min-h-screen'>
       <div className='max-w-4xl mx-auto px-4 py-16'>
@@ -16,7 +41,8 @@ export default function DocsPage() {
             조금 더 쉽게 쉽게 이해해봅시다.
           </p>
 
-          <SearchBar />
+          {/* 3. SearchBar 컴포넌트에 변환된 데이터를 props로 전달합니다. */}
+          <SearchBar allDocs={allDocs} />
         </div>
 
         {/* 기여 가이드 섹션 */}
