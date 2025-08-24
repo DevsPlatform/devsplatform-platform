@@ -1,22 +1,31 @@
+// src/components/docs/SearchBar.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-// SearchResult 타입 정의
+import Link from 'next/link';
+
+// Docs 데이터 타입 정의
 interface SearchResult {
   title: string;
   description: string;
   icon: string;
   category: string;
+  link: string;
 }
 
-export default function SearchBar() {
+// props 타입 정의
+interface SearchBarProps {
+  allDocs: SearchResult[];
+}
+
+export default function SearchBar({ allDocs }: SearchBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [filteredResults, setFilteredResults] = useState<SearchResult[]>([]);
 
   useEffect(() => {
     if (searchQuery.length > 0) {
-      const results = mockSearchResults.filter(
+      const results = allDocs.filter(
         (item: SearchResult) =>
           item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.description.toLowerCase().includes(searchQuery.toLowerCase())
@@ -27,7 +36,12 @@ export default function SearchBar() {
       setFilteredResults([]);
       setIsOpen(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, allDocs]); // allDocs를 의존성 배열에 추가
+
+  const handleLinkClick = () => {
+    setIsOpen(false);
+    setSearchQuery('');
+  };
 
   return (
     <div className='w-full max-w-2xl mx-auto relative'>
@@ -110,29 +124,24 @@ export default function SearchBar() {
           {/* 검색 결과 */}
           <div className='absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-96 overflow-y-auto'>
             {filteredResults.map((result, index) => (
-              <div
-                key={index}
-                className='px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0'
-                onClick={() => {
-                  console.log('선택:', result.title);
-                  setIsOpen(false);
-                }}
-              >
-                <div className='flex items-start'>
-                  <span className='text-lg mr-3 mt-1'>{result.icon}</span>
-                  <div className='flex-1'>
-                    <h4 className='font-medium text-gray-900 mb-1'>
-                      {result.title}
-                    </h4>
-                    <p className='text-sm text-gray-600 mb-1'>
-                      {result.description}
-                    </p>
-                    <span className='text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded'>
-                      {result.category}
-                    </span>
+              <Link key={index} href={result.link} onClick={handleLinkClick}>
+                <div className='px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0'>
+                  <div className='flex items-start'>
+                    <span className='text-lg mr-3 mt-1'>{result.icon}</span>
+                    <div className='flex-1'>
+                      <h4 className='font-medium text-gray-900 mb-1'>
+                        {result.title}
+                      </h4>
+                      <p className='text-sm text-gray-600 mb-1'>
+                        {result.description}
+                      </p>
+                      <span className='text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded'>
+                        {result.category}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </>
@@ -153,48 +162,3 @@ export default function SearchBar() {
     </div>
   );
 }
-
-const mockSearchResults = [
-  {
-    title: 'React Hooks 완벽 가이드',
-    description: 'useState, useEffect부터 커스텀 훅까지',
-    icon: '⚛️',
-    category: 'React',
-  },
-  {
-    title: 'Next.js App Router',
-    description: '새로운 라우팅 시스템 완전 정복',
-    icon: '🔷',
-    category: 'Next.js',
-  },
-  {
-    title: 'JavaScript 비동기 처리',
-    description: 'Promise, async/await 쉽게 이해하기',
-    icon: '📜',
-    category: 'JavaScript',
-  },
-  {
-    title: 'TypeScript 기초',
-    description: '타입으로 안전한 코드 작성하기',
-    icon: '🔷',
-    category: 'TypeScript',
-  },
-  {
-    title: 'CSS Flexbox',
-    description: '레이아웃의 혁신, Flexbox 마스터하기',
-    icon: '🎨',
-    category: 'CSS',
-  },
-  {
-    title: 'React useState Hook',
-    description: 'React의 가장 기본적인 상태 관리 훅',
-    icon: '⚛️',
-    category: 'React',
-  },
-  {
-    title: 'JavaScript async/await',
-    description: '비동기 처리를 동기처럼 쉽게',
-    icon: '📜',
-    category: 'JavaScript',
-  },
-];
