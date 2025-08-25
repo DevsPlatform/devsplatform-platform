@@ -1,22 +1,25 @@
 // src/components/main/DynamicContent.tsx
 import React from 'react';
 import Link from 'next/link';
+import { getDocsTree } from '@/lib/github';
+import PostListItem from './PostListItem';
 
-// Docs API에서 가져오는 파일의 타입 정의
-interface DocsFile {
-  name: string;
-  path: string;
-  type: 'file' | 'dir';
-  download_url?: string;
-  content?: string;
+// Docs 포스트 타입 정의
+interface DocsPost {
+  title: string;
+  link: string;
+  contributor: string;
 }
 
-// 이전에 작성했던 GitHub API 함수를 가져옵니다.
-// 경로는 실제 프로젝트 구조에 맞게 수정해주세요.
-import { getDocsFiles } from '@/lib/github';
-
 // 커뮤니티 더미 데이터 (아직 API가 없으므로 그대로 사용)
-const latestCommunity = [
+interface CommunityPost {
+  title: string;
+  link: string;
+  date: string;
+  likes: number;
+  comments: number;
+}
+const latestCommunity: CommunityPost[] = [
   {
     title: 'Next.js 배포할 때 계속 에러가 나요 ㅠㅠ',
     link: '#',
@@ -54,67 +57,70 @@ const latestCommunity = [
   },
 ];
 
-// 컴포넌트를 비동기 함수로 만들어 서버 컴포넌트로 작동하게 합니다.
-export default async function DynamicContent() {
-  // Docs API를 호출하여 실제 파일 목록을 가져옵니다.
-  const docsFiles: DocsFile[] = await getDocsFiles();
+// 재사용 가능한 목록 컴포넌트
+interface PostListProps {
+  title: string;
+  posts: (DocsPost | CommunityPost)[];
+  viewMoreHref: string;
+}
 
-  // 최신 Docs 파일 5개만 필터링하고 UI에 맞게 데이터를 변환합니다.
-  const latestDocs = docsFiles
-    .filter(file => file.type === 'file') // 파일만 남기고
-    .slice(0, 5) // 최신 5개만 선택
-    .map(file => ({
-      // API 응답 데이터를 UI 데이터 형식에 맞게 변환합니다.
-      title: file.name.replace(/\.md$/, ''), // 파일명에서 확장자 제거
-      link: `/docs/${file.path}`, // Docs 페이지 링크
-      date: 'N/A', // GitHub API 응답에 직접적인 날짜/조회수 데이터가 없어 더미값 사용
-      views: 0,
-      likes: 0,
-    }));
+const PostList = ({ title, posts, viewMoreHref }: PostListProps) => (
+  <div className='bg-white p-6 rounded-xl shadow-md flex flex-col h-full'>
+    <div className='flex justify-between items-center mb-4 border-b border-gray-200 pb-2'>
+      <h2 className='text-2xl font-bold text-gray-900'>{title}</h2>
+      <Link
+        href={viewMoreHref}
+        className='text-sm text-gray-500 hover:text-blue-600 transition-colors'
+      >
+        더 보기 &gt;
+      </Link>
+    </div>
+    <ul className='space-y-4 flex-1'>
+      {posts.map((post, index) => (
+        <PostListItem key={index} post={post} />
+      ))}
+    </ul>
+  </div>
+);
+
+export default async function DynamicContent() {
+  const docsFiles = await getDocsTree();
+
+  const latestDocs: DocsPost[] = await Promise.all(
+    docsFiles
+      .filter(
+        file =>
+          file.type === 'file' &&
+          file.name.endsWith('.md') &&
+          file.path.includes('/')
+      )
+      .slice(0, 5)
+      .map(async file => {
+        const res = await fetch(
+          `https://api.github.com/repos/DevsPlatform/devsplatform-docs/commits?path=${file.path}&per_page=1`,
+          {
+            next: { revalidate: 3600 },
+          }
+        );
+        const commitData = await res.json();
+        const latestCommit = commitData?.[0];
+
+        return {
+          title: file.name.replace(/\.md$/, ''),
+          link: `/docs/${file.path.replace(/\.md$/, '')}`,
+          contributor: latestCommit?.author?.login || '알 수 없음',
+        };
+      })
+  );
 
   return (
     <div className='max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8'>
-      {/* Docs 섹션 */}
-      <div className='bg-white p-6 rounded-xl shadow-md'>
-        <h2 className='text-2xl font-bold mb-4 border-b border-gray-200 pb-2'>
-          Docs
-        </h2>
-        <ul className='space-y-4'>
-          {latestDocs.map((doc, index) => (
-            <li key={index} className='flex justify-between items-center'>
-              <Link href={doc.link} className='flex-1 hover:underline'>
-                <span className='font-medium text-gray-800'>{doc.title}</span>
-              </Link>
-              <div className='flex items-center text-sm text-gray-500 space-x-2'>
-                <span>{doc.date}</span>
-                <span>조회 {doc.views}</span>
-                <span>추천 {doc.likes}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Community 섹션 */}
-      <div className='bg-white p-6 rounded-xl shadow-md'>
-        <h2 className='text-2xl font-bold mb-4 border-b border-gray-200 pb-2'>
-          커뮤니티
-        </h2>
-        <ul className='space-y-4'>
-          {latestCommunity.map((post, index) => (
-            <li key={index} className='flex justify-between items-center'>
-              <Link href={post.link} className='flex-1 hover:underline'>
-                <span className='font-medium text-gray-800'>{post.title}</span>
-              </Link>
-              <div className='flex items-center text-sm text-gray-500 space-x-2'>
-                <span>{post.date}</span>
-                <span>추천 {post.likes}</span>
-                <span>댓글 {post.comments}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <PostList title='Docs' posts={latestDocs} viewMoreHref='/docs' />
+      <PostList
+        title='커뮤니티'
+        posts={latestCommunity}
+        viewMoreHref='/community'
+      />
     </div>
   );
 }
