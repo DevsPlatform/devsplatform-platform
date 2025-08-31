@@ -6,6 +6,7 @@ import rehypeHighlight from 'rehype-highlight';
 import Image from 'next/image';
 import { getFileContent, getDocsTree } from '@/lib/github';
 import 'highlight.js/styles/github.css';
+import rehypeRaw from 'rehype-raw';
 
 // GitHub API 타입 정의 (author 필드를 사용하도록 수정)
 interface Commit {
@@ -115,7 +116,7 @@ export default async function DocsDetailPage({ params }: PageProps) {
           <article className='prose prose-lg max-w-none'>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeHighlight]}
+              rehypePlugins={[rehypeHighlight, rehypeRaw]}
               components={{
                 h1: ({ children }) => (
                   <h1 className='text-3xl font-bold text-gray-900 mt-8 mb-4 first:mt-0'>
